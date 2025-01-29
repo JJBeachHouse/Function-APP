@@ -1,0 +1,25 @@
+api_version = "2025-01"
+
+[[extensions]]
+name = "t:name"
+handle = "product-discount-by-tag"
+type = "function"
+
+description = "t:description"
+
+  [[extensions.targeting]]
+  target = "purchase.product-discount.run"
+  input_query = "src/run.graphql"
+  export = "run"
+
+  [extensions.build]
+  command = ""
+  path = "dist/function.wasm"
+
+  [extensions.ui.paths]
+  create = "/app/product_discount_by_tag/:functionId/new"
+  details = "/app/product_discount_by_tag/:functionId/:id"
+
+ [extensions.input.variables]
+namespace = "$app:product-discount"
+key = "JsonTag" 
