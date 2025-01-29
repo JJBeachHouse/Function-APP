@@ -1,0 +1,28 @@
+query RunInput {
+  cart {
+    lines {
+      quantity
+      freeGift: attribute(key:"__free_gift")
+      {
+        key
+      }
+      gwpType:attribute(key:"_gwpType")
+      {
+        key
+      }
+      giftId:attribute(key:"_giftId")
+      {
+        key
+      }
+      merchandise {
+        __typename
+        ...on ProductVariant {
+          id
+          product { 
+            id 
+          }
+        }
+      }
+    }
+  }
+}
