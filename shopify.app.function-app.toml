@@ -3,21 +3,23 @@
 client_id = "3109de6648b3f3d52798f8fd758d859e"
 name = "Function-app"
 handle = "function-app-18"
-application_url = "https://shopify.dev/apps/default-app-home"
+application_url = "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/"
 embedded = true
-
-[build]
-include_config_on_deploy = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = ""
 
 [auth]
-redirect_urls = [ "https://shopify.dev/apps/default-app-home/api/auth" ]
+redirect_urls = [
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/api/auth"
+]
 
 [webhooks]
 api_version = "2025-01"
 
 [pos]
 embedded = false
+
+[build]
+include_config_on_deploy = true
