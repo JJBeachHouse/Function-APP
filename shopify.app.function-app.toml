@@ -12,7 +12,10 @@ scopes = ""
 
 [auth]
 redirect_urls = [
-  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/api/auth"
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/api/auth",
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/auth/shopify/callback",
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/auth/callback"
+  
 ]
 
 [webhooks]
