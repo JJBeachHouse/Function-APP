@@ -3,7 +3,7 @@
 client_id = "3109de6648b3f3d52798f8fd758d859e"
 name = "Function-app"
 handle = "function-app-18"
-application_url = "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/"
+application_url = "https://grip-du-resolution-demands.trycloudflare.com"
 embedded = true
 
 [access_scopes]
@@ -12,10 +12,9 @@ scopes = ""
 
 [auth]
 redirect_urls = [
-  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/api/auth",
-  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/auth/shopify/callback",
-  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/auth/callback"
-  
+  "https://grip-du-resolution-demands.trycloudflare.com/auth/callback",
+  "https://grip-du-resolution-demands.trycloudflare.com/auth/shopify/callback",
+  "https://grip-du-resolution-demands.trycloudflare.com/api/auth/callback"
 ]
 
 [webhooks]
@@ -26,3 +25,5 @@ embedded = false
 
 [build]
 include_config_on_deploy = true
+dev_store_url = "quickstart-92045020.myshopify.com"
+automatically_update_urls_on_dev = true
