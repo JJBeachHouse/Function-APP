@@ -4,7 +4,6 @@ import { useActionData, useLoaderData, useNavigation, useSubmit } from "@remix-r
 import { useLocation, useParams } from 'react-router-dom';
 
 import { convertToDateTime } from './common/date-conversion';
-
 import {
   Text,
   Page,
@@ -18,12 +17,11 @@ import {
   Grid,
   Box,
   Checkbox,
+  Button,
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { createApp } from '@shopify/app-bridge';
 import { Redirect } from '@shopify/app-bridge/actions';
-
-
 
 export const loader = async ({ request }) => {
   await authenticate.admin(request);
@@ -63,19 +61,14 @@ export const action = async ({ request }) => {
   const title = formData.get("title");
   const discountType = formData.get("discountType");
   const discountCode = formData.get("discountCode");
- 
- 
+  const startsAt = formData.get("startsAt") ?? "2024-12-12T17:09:21Z";
+  const endsAt = formData.get("endsAt");
+
   const combineWithOrderDiscounts = JSON.parse(formData.get("combineWithOrderDiscounts"));
   const combineWithProductDiscounts = JSON.parse(formData.get("combineWithProductDiscounts"));
   const combineWithShippingDiscounts = JSON.parse(formData.get("combineWithShippingDiscounts"));
-  const tag = formData.get("tag");
-  const amount = formData.get("amount");
-  const amountType = formData.get("amountType");
-  const message = formData.get("message");
-  const startsAt = formData.get("startsAt") ?? "2024-12-12T17:09:21Z";
-  const endsAt = formData.get("endsAt");
-  
-
+  const tags = formData.get("tags");
+  const onlytags= JSON.parse(tags).map((tag)=>tag.tag) ;
 
   if (discountType == "code") {
 
@@ -91,34 +84,16 @@ export const action = async ({ request }) => {
       startsAt: startsAt,
       metafields: [
         {
-          key: "tag",
+          key: "tags",
           namespace: "$app:product-discount",
           type: "string",
-          value: tag,
+          value: JSON.stringify({tags}),
         },
-        { 
-          key: "JsonTag",
+        {
+          key: "JsonTags",  
           namespace: "$app:product-discount",
           type: "json",
-          value: JSON.stringify({JsonTag:tag}),
-        },
-        {
-          key: "amountType",
-          namespace: "$app:product-discount",
-          type: "string",
-          value: amountType,
-        },
-        {
-          key: "amount",
-          namespace: "$app:product-discount",
-          type: "float",
-          value: amount,
-        },
-        {
-          key: "message",
-          namespace: "$app:product-discount",
-          type: "string",
-          value: message,
+          value: JSON.stringify({ JsonTags: onlytags }),
         },
         {
           key: "configuration",
@@ -126,10 +101,7 @@ export const action = async ({ request }) => {
           type: "json",
           value: JSON.stringify({
             discountType: discountType,
-            tag: tag,
-            amountType: amountType,
-            amount: amount,
-            message: message
+            tags: tags
           }),
         },
       ],
@@ -140,7 +112,8 @@ export const action = async ({ request }) => {
 
 
 
-     
+
+
 
 
     // Execute the mutation
@@ -197,45 +170,26 @@ export const action = async ({ request }) => {
       functionId: functionId,
       metafields: [
         {
-          key: "tag",
+          key: "tags",
           namespace: "$app:product-discount",
           type: "string",
-          value: tag,
+          value: tags,
         },
-        { 
+        {
           key: "JsonTag",
           namespace: "$app:product-discount",
           type: "json",
-          value: JSON.stringify({JsonTag:tag}),
+          value: JSON.stringify({ JsonTags: onlytags }),
         },
-        {
-          key: "amountType",
-          namespace: "$app:product-discount",
-          type: "string",
-          value: amountType,
-        },
-        {
-          key: "amount",
-          namespace: "$app:product-discount",
-          type: "float",
-          value: amount,
-        },
-        {
-          key: "message",
-          namespace: "$app:product-discount",
-          type: "string",
-          value: message,
-        },
+
+
         {
           key: "configuration",
           namespace: "$app:product-discount",
           type: "json",
           value: JSON.stringify({
             discountType: discountType,
-            tag: tag,
-            amountType: amountType,
-            amount: amount,
-            message: message
+            tags: tags
           }),
         },
       ],
@@ -245,7 +199,7 @@ export const action = async ({ request }) => {
     if (endsAt != "null") {
       automaticAppDiscount.endsAt = endsAt;
     }
-  
+
     const response = await admin.graphql(
       `#graphql
       mutation discountAutomaticAppCreate($automaticAppDiscount: DiscountAutomaticAppInput!) {
@@ -270,18 +224,14 @@ export const action = async ({ request }) => {
       resp: responseJson,
     });
   }
-};
-function validateData(tag, amount, amountType, message) {
 
-  if (isNaN(amount) || amount == 0 || amount < 0) {
-    return { valid: false, Errormessage: `Invalid entred amount` };
+};
+function validateData(tags) {
+
+  if (tags.length==0) {
+    return { valid: false, Errormessage: `tags are required` };
   }
-  if (tag == "") {
-    return { valid: false, Errormessage: `tag is required` };
-  }
-  if (message == "") {
-    return { valid: false, Errormessage: `message is required` };
-  }
+
   return { valid: true, Errormessage: `` };
 
 }
@@ -307,10 +257,7 @@ export default function Index() {
 
 
   const [title, setTitle] = useState("");
-  const [tag, setTag] = useState("");
-  const [amount, setAmount] = useState("");
-  const [amountType, setAmountType] = useState("fixed");
-  const [message, setMessage] = useState("");
+  const [tags, setTags] = useState([]);
   const [combineWithOrderDiscounts, setCombineWithOrderDiscounts] = useState(false);
   const [combineWithProductDiscounts, setCombineWithProductDiscounts] = useState(false);
   const [combineWithShippingDiscounts, setCombineWithShippingDiscounts] = useState(false);
@@ -321,6 +268,17 @@ export default function Index() {
   const [startTime, setStartTime] = useState("06:00");
 
 
+  const addTag = () => setTags([...tags, { tag: "" }]);
+  const updateTag = (index, key, value) => {
+    const newTags = [...tags];
+    newTags[index][key] = value;
+    setTags(newTags);
+  };
+  const removeTag = (index) => {
+    const updatedTags = [...tags];
+    updatedTags.splice(index, 1);
+    setTags(updatedTags);
+  };
 
 
 
@@ -341,7 +299,7 @@ export default function Index() {
             if (resp.resp?.data.discountAutomaticAppCreate?.userErrors.length < 1 || !resp.resp?.data.discountAutomaticAppCreate) {
 
               shopify.toast.show("Discount Created!");
-              redirect.dispatch(Redirect.Action.REMOTE, discountsURL);
+              // redirect.dispatch(Redirect.Action.REMOTE, discountsURL);
             }
           }
         }
@@ -361,7 +319,7 @@ export default function Index() {
           else {
             if (resp.resp?.data.discountCodeAppCreate?.userErrors.length < 1 || !resp.resp?.data.discountCodeAppCreate) {
               shopify.toast.show("Discount Created!");
-              redirect.dispatch(Redirect.Action.REMOTE, discountsURL);
+              // redirect.dispatch(Redirect.Action.REMOTE, discountsURL);
             }
           }
         }
@@ -381,17 +339,14 @@ export default function Index() {
 
   // Variables 
 
- 
+
   // ----------------------------- Form Data 
   const formData = new FormData();
   formData.append("functionId", functionId);
   formData.append("title", title);
   formData.append("discountType", discountType);
   formData.append("discountCode", discountCode);
-  formData.append("tag", tag);
-  formData.append("amount", amount);
-  formData.append("amountType", amountType);
-  formData.append("message", message);
+  formData.append("tags", JSON.stringify(tags));
   formData.append("combineWithOrderDiscounts", combineWithOrderDiscounts);
   formData.append("combineWithProductDiscounts", combineWithProductDiscounts);
   formData.append("combineWithShippingDiscounts", combineWithShippingDiscounts);
@@ -403,10 +358,11 @@ export default function Index() {
   } else {
     formData.append('endsAt', null);
   }
-   
- 
+
+
   const CreateDiscount = () => {
-    const { valid, Errormessage } = validateData(tag, amount, amountType, message);
+
+    const { valid, Errormessage } = validateData(tags);
     if (valid == false) {
       shopify.toast.show(`${Errormessage}`, {
         autoClose: 2000,
@@ -491,54 +447,32 @@ export default function Index() {
 
                     </Text>
                     <Box paddingBlockStart="200">
-                      <Grid>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <TextField
-                            label="Tag"
-                            type="text"
-                            value={tag}
-                            onChange={(value) => setTag(value)}
-                          />
-                        </Grid.Cell>
-                      </Grid>
-                      <Grid>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <TextField
-                            label="Discount Amount"
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={amount}
-                            onChange={(value) => setAmount(value)}
-                          />
-                        </Grid.Cell>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <Select
-                            label="Amount Type"
-                            select
-                            options={[
-                              { label: "Fixed", value: "fixed" },
-                              { label: "Percent", value: "percent" },
-                            ]}
-                            value={amountType}
-                            onChange={(value) => setAmountType(value)}
-                          />
-                        </Grid.Cell>
-                      </Grid>
-                      <Grid>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <TextField
-                            label="Message"
-                            type="text"
-                            value={message}
-                            onChange={(value) => setMessage(value)}
-                          />
-                        </Grid.Cell>
-                      </Grid>
+                    
+                      {tags.map((tag, index) => (
+                        <Grid key={index}>
+                          <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                            <TextField
+                              label="tags"
+                              type="text"
+                              value={tag.tag}
+                              onChange={(value) => updateTag(index, "tag", value)}
+                            />
+                          </Grid.Cell>
+                          <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                            <div style={{ marginTop: "30px" }}>
+                              <Button variant="plain" onClick={() => removeTag(index)} tone="critical">Remove </Button>
+                            </div>
+                          </Grid.Cell>
+                        </Grid>
+                      ))}
+                      <div style={{ marginTop: "20px" }}>
+                        <Button onClick={addTag} >Add Tag</Button>
+                      </div>
+
                     </Box>
                   </Card>
                 </div>
+
                 <div style={{ marginTop: "20px" }}>
                   <Card>
                     <Grid>
@@ -591,8 +525,6 @@ export default function Index() {
 
                   </Card>
                 </div>
-
-              
                 <div style={{ marginTop: "20px" }}>
                   <Card>
                     <Checkbox

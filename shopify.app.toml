@@ -1,10 +1,16 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "0daeb8f2dcf169ec03d6cb812cb8c7d1"
-name = "discount-functions"
-handle = "discount-functions-35"
 application_url = "https://example.com/"
 embedded = true
+name = "discount-functions"
+handle = "discount-functions-35"
+
+[build]
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-01"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
@@ -12,17 +18,6 @@ scopes = "write_products"
 
 [auth]
 redirect_urls = [ "https://example.com/api/auth" ]
-
-[webhooks]
-api_version = "2025-01"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/uninstalled" ]
-  uri = "/webhooks/app/uninstalled"
-
-  [[webhooks.subscriptions]]
-  topics = [ "app/scopes_update" ]
-  uri = "/webhooks/app/scopes_update"
 
 [pos]
 embedded = false

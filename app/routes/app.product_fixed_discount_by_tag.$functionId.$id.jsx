@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { json } from "@remix-run/node";
-import { Link, useActionData, useLoaderData, useNavigation, useSubmit } from "@remix-run/react";
+import {  useActionData, useLoaderData, useNavigation, useSubmit } from "@remix-run/react";
 import { useLocation, useParams } from 'react-router-dom';
 import { convertToDateTime,convertToEST } from './common/date-conversion';
 
@@ -14,28 +14,22 @@ import {
   AppProvider as PolarisProvider,
   Card,
   Select,
-  Button,
   Grid,
   Box,
   Checkbox,
-  List,
+  Button
 } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import { createApp } from '@shopify/app-bridge';
-import { Redirect, ResourcePicker } from '@shopify/app-bridge/actions';
+import { Redirect } from '@shopify/app-bridge/actions';
 
 
-function validateData(tag, amount, amountType, message) {
+function validateData(tags) {
 
-  if (isNaN(amount) || amount == 0 || amount < 0) {
-    return { valid: false, Errormessage: `Invalid entred amount` };
+  if (tags.length==0) {
+    return { valid: false, Errormessage: `tags are required` };
   }
-  if (tag == "") {
-    return { valid: false, Errormessage: `tag is required` };
-  }
-  if (message == "") {
-    return { valid: false, Errormessage: `message is required` };
-  }
+
   return { valid: true, Errormessage: `` };
 
 }
@@ -165,20 +159,12 @@ export const loader = async ({ request, params }) => {
     discountCode = currentDiscount.data.codeDiscountNode?.codeDiscount?.codes?.nodes[0]?.code;
 
   }
-
-
   let discountNode = discountType == "automatic" ? currentDiscount.data.automaticDiscountNode : currentDiscount.data.codeDiscountNode;
- 
-  let tag = discountNode.metafields.nodes.find((node) => node.key === "tag")?.value || null;
-  let amountType = discountNode.metafields.nodes.find((node) => node.key === "amountType")?.value || null;
-  let amount = discountNode.metafields.nodes.find((node) => node.key === "amount")?.value || null;
-  let message = discountNode.metafields.nodes.find((node) => node.key === "message")?.value || null;
+  let tags = discountNode.metafields.nodes.find((node) => node.key === "tags")?.value || null;
   let selectedStartsAt = discountType == "automatic" ? discountNode.automaticDiscount.startsAt : discountNode.codeDiscount.startsAt;
   let selectedEndsAt = discountType == "automatic" ? discountNode.automaticDiscount.endsAt : discountNode.codeDiscount.endsAt;
   selectedStartsAt = convertToEST(selectedStartsAt);
   selectedEndsAt = selectedEndsAt ? convertToEST(selectedEndsAt) : null;
-
-
   const combination = discountType == "code" ? discountNode.codeDiscount.combinesWith : discountNode.automaticDiscount.combinesWith;
   const { orderDiscounts, productDiscounts, shippingDiscounts } = combination;
   const withorderDiscounts = orderDiscounts;
@@ -195,10 +181,7 @@ export const loader = async ({ request, params }) => {
     withshippingDiscounts,
     discountType: discountType,
     SelectedDiscountCode: discountCode,
-    SelectedTag: tag,
-    SelectedAmountType: amountType,
-    SelectedAmount: amount,
-    SelectedMessage: message,
+    SelectedTags: tags,
     selectedStartsAt,
     selectedEndsAt
 
@@ -221,11 +204,8 @@ export const action = async ({ request }) => {
   const combineWithOrderDiscounts = JSON.parse(formData.get("combineWithOrderDiscounts"));
   const combineWithProductDiscounts = JSON.parse(formData.get("combineWithProductDiscounts"));
   const combineWithShippingDiscounts = JSON.parse(formData.get("combineWithShippingDiscounts"));
-  const tag = formData.get("tag");
-  const amount = formData.get("amount");
-  const amountType = formData.get("amountType");
-  const message = formData.get("message");
-
+  const tags = formData.get("tags");
+  const onlytags= JSON.parse(tags).map((tag)=>tag.tag) ;
   // // return false;
 
   if (discountType == "code") {
@@ -277,39 +257,19 @@ export const action = async ({ request }) => {
          metafields: [
             {
               ownerId: DiscountCodeNode,
-              key: "tag",
+              key: "tags",
               namespace: "$app:product-discount",
               type: "string",
-              value: tag,
+              value: tags,
             },
             {
               ownerId: DiscountCodeNode,
               key: "JsonTag",
               namespace: "$app:product-discount",
               type: "json",
-              value: JSON.stringify({JsonTag:tag}),
+              value: JSON.stringify({JsonTags:onlytags}),
             },
-            {
-              ownerId: DiscountCodeNode,
-              key: "amountType",
-              namespace: "$app:product-discount",
-              type: "string",
-              value: amountType,
-            },
-            {
-              ownerId: DiscountCodeNode,
-              key: "amount",
-              namespace: "$app:product-discount",
-              type: "float",
-              value: amount,
-            },
-            {
-              ownerId: DiscountCodeNode,
-              key: "message",
-              namespace: "$app:product-discount",
-              type: "string",
-              value: message,
-            },
+          
             {
               ownerId: DiscountCodeNode,
               key: "configuration",
@@ -317,10 +277,7 @@ export const action = async ({ request }) => {
               type: "json",
               value: JSON.stringify({
                 discountType: discountType,
-                tag: tag,
-                amountType: amountType,
-                amount: amount,
-                message: message
+                tags: tags
               }),
             },
           ],
@@ -385,39 +342,19 @@ export const action = async ({ request }) => {
           metafields: [
             {
               ownerId: DiscountCodeNode,
-              key: "tag",
+              key: "tags",
               namespace: "$app:product-discount",
               type: "string",
-              value: tag,
+              value: tags,
             },
             {
               ownerId: DiscountCodeNode,
               key: "JsonTag",
               namespace: "$app:product-discount",
               type: "json",
-              value: JSON.stringify({JsonTag:tag}),
+              value: JSON.stringify({JsonTags:onlytags}),
             },
-            {
-              ownerId: DiscountCodeNode,
-              key: "amountType",
-              namespace: "$app:product-discount",
-              type: "string",
-              value: amountType,
-            },
-            {
-              ownerId: DiscountCodeNode,
-              key: "amount",
-              namespace: "$app:product-discount",
-              type: "float",
-              value: amount,
-            },
-            {
-              ownerId: DiscountCodeNode,
-              key: "message",
-              namespace: "$app:product-discount",
-              type: "string",
-              value: message,
-            },
+          
             {
               ownerId: DiscountCodeNode,
               key: "configuration",
@@ -425,10 +362,7 @@ export const action = async ({ request }) => {
               type: "json",
               value: JSON.stringify({
                 discountType: discountType,
-                tag: tag,
-                amountType: amountType,
-                amount: amount,
-                message: message
+                tags: tags
               }),
             },
           ],
@@ -461,10 +395,7 @@ export default function Index() {
     SelectedDiscountCode,
     selectedStartsAt,
     selectedEndsAt,
-    SelectedTag,
-    SelectedAmountType,
-    SelectedAmount,
-    SelectedMessage
+    SelectedTags
 
   } = useLoaderData();
 
@@ -525,7 +456,7 @@ export default function Index() {
       setTitle(discountType == "automatic" ? currentDiscount.data.automaticDiscountNode?.automaticDiscount.title : currentDiscount.data.codeDiscountNode?.codeDiscount.title);
     }
   }, [currentDiscount]);
-
+ 
 
 
 
@@ -534,31 +465,38 @@ export default function Index() {
   const [combineWithProductDiscounts, setCombineWithProductDiscounts] = useState(withproductDiscounts);
   const [combineWithShippingDiscounts, setCombineWithShippingDiscounts] = useState(withshippingDiscounts);
   const [discountCode, setDiscountCode] = useState(SelectedDiscountCode);
-  const [tag, setTag] = useState(SelectedTag);
-  const [amount, setAmount] = useState(SelectedAmount);
-  const [amountType, setAmountType] = useState(SelectedAmountType);
-  const [message, setMessage] = useState(SelectedMessage);
   const [endDate, setEndDate] = useState(selectedEndsAt ? selectedEndsAt?.split("T")[0] : new Date().toISOString().split("T")[0]);
   const [endTime, setEndTime] = useState(selectedEndsAt ? selectedEndsAt?.split("T")[1].slice(0, 5) : "23:00");
   const [showEndDate, setShowEndDate] = useState(selectedEndsAt ? true : false);
   const [startDate, setStartDate] = useState(selectedStartsAt.split("T")[0]);
   const [startTime, setStartTime] = useState(selectedStartsAt.split("T")[1].slice(0, 5));
+
+  const addTag = () => setTags([...tags, { tag: "" }]);
+  const updateTag = (index, key, value) => {
+    const newTags = [...tags];
+    newTags[index][key] = value; 
+    setTags(newTags);
+  };
+  const removeTag = (index) => {
+    const updatedTags = [...tags];
+    updatedTags.splice(index, 1);
+    setTags(updatedTags);
+  };
+
+  const [tags, setTags] = useState(JSON.parse(SelectedTags));
  
 
   // endActions
   const formData = new FormData();
   formData.append("functionId", functionId);
-  formData.append("title", title);
   formData.append("id", id);
+  formData.append("title", title);
+  formData.append("discountType", discountType);
+  formData.append("discountCode", discountCode);
+  formData.append("tags", JSON.stringify(tags));
   formData.append("combineWithOrderDiscounts", combineWithOrderDiscounts);
   formData.append("combineWithProductDiscounts", combineWithProductDiscounts);
   formData.append("combineWithShippingDiscounts", combineWithShippingDiscounts);
-  formData.append('discountType', discountType);
-  formData.append('discountCode', discountCode);
-  formData.append("tag", tag);
-  formData.append("amount", amount);
-  formData.append("amountType", amountType);
-  formData.append("message", message);
   let StartDate = convertToDateTime(startDate, startTime);
   let EndDate = convertToDateTime(endDate, endTime);
   console.log("StartDate", StartDate)
@@ -569,8 +507,10 @@ export default function Index() {
     formData.append('endsAt', null);
   }
 
+
   const CreateDiscount = () => {
-    const { valid, Errormessage } = validateData(tag, amount, amountType, message);
+
+    const { valid, Errormessage } = validateData(tags);
     if (valid == false) {
       shopify.toast.show(`${Errormessage}`, {
         autoClose: 2000,
@@ -656,54 +596,32 @@ export default function Index() {
 
                     </Text>
                     <Box paddingBlockStart="200">
-                      <Grid>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <TextField
-                            label="Tag"
-                            type="text"
-                            value={tag}
-                            onChange={(value) => setTag(value)}
-                          />
-                        </Grid.Cell>
-                      </Grid>
-                      <Grid>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <TextField
-                            label="Discount Amount"
-                            type="number"
-                            min={0}
-                            max={100}
-                            step={1}
-                            value={amount}
-                            onChange={(value) => setAmount(value)}
-                          />
-                        </Grid.Cell>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <Select
-                            label="Amount Type"
-                            select
-                            options={[
-                              { label: "Fixed", value: "fixed" },
-                              { label: "Percent", value: "percent" },
-                            ]}
-                            value={amountType}
-                            onChange={(value) => setAmountType(value)}
-                          />
-                        </Grid.Cell>
-                      </Grid>
-                      <Grid>
-                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
-                          <TextField
-                            label="Message"
-                            type="text"
-                            value={message}
-                            onChange={(value) => setMessage(value)}
-                          />
-                        </Grid.Cell>
-                      </Grid>
+                      
+                      {tags.map((tag, index) => (
+                        <Grid key={index}>
+                          <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                            <TextField
+                              label="tags"
+                              type="text"
+                              value={tag.tag}
+                              onChange={(value) => updateTag(index, "tag", value)}
+                            />
+                          </Grid.Cell>
+                          <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                            <div style={{ marginTop: "30px" }}>
+                              <Button variant="plain" onClick={() => removeTag(index)} tone="critical">Remove </Button>
+                            </div>
+                          </Grid.Cell>
+                        </Grid>
+                      ))}
+                      <div style={{ marginTop: "20px" }}>
+                        <Button onClick={addTag} >Add Tag</Button>
+                      </div>
+
                     </Box>
                   </Card>
                 </div>
+
                 <div style={{ marginTop: "20px" }}>
                   <Card>
                     <Grid>
@@ -756,7 +674,6 @@ export default function Index() {
 
                   </Card>
                 </div>
-                
                 <div style={{ marginTop: "20px" }}>
                   <Card>
                     <Checkbox

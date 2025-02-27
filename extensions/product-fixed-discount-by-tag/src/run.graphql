@@ -1,0 +1,36 @@
+query RunInput($JsonTags:[String!]) {
+  cart {
+    lines {
+      quantity
+      cost
+      {
+        amountPerQuantity
+        {
+          amount
+        }
+      }
+      merchandise {
+        __typename
+        ...on ProductVariant {
+          id
+          
+
+          product {
+            id
+            hasAnyTag(tags:$JsonTags) 
+            hasTags(tags:$JsonTags)
+            {
+              hasTag 
+              tag
+            }
+          }
+        }
+      }
+    }
+  }
+  discountNode {
+    metafield(namespace: "$app:product-discount", key: "configuration") {
+      value
+    }
+  }
+}
