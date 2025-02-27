@@ -3,18 +3,18 @@
 client_id = "3109de6648b3f3d52798f8fd758d859e"
 name = "Function-app"
 handle = "function-app-18"
-application_url = "https://showcase-watts-translated-began.trycloudflare.com"
+application_url = "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com"
 embedded = true
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = ""
+scopes = "read_discounts,write_discounts"
 
 [auth]
 redirect_urls = [
-  "https://showcase-watts-translated-began.trycloudflare.com/auth/callback",
-  "https://showcase-watts-translated-began.trycloudflare.com/auth/shopify/callback",
-  "https://showcase-watts-translated-began.trycloudflare.com/api/auth/callback"
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/auth/callback",
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/auth/shopify/callback",
+  "https://shopify-func-app-5b1a9e5cd4bd.herokuapp.com/api/auth/callback"
 ]
 
 [webhooks]
