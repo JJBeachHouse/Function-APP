@@ -21,7 +21,8 @@ const EMPTY_DISCOUNT = {
  */
 export function run(input) {
   const discounts = [];
-
+  const metafieldValue = input.discountNode?.metafield?.value;
+  const { message } = JSON.parse(metafieldValue);
   input.cart.lines.forEach((line) => {
     const variant = line.merchandise;
     if (!variant?.product?.hasAnyTag || !variant.product.hasTags) {
@@ -66,7 +67,7 @@ export function run(input) {
           },
         },
       ],
-      message:`Get only for $${(fixedPrice / 100).toFixed(2)}`
+      message: message ||  `Get only for $${(fixedPrice / 100).toFixed(2)}`
     });
   });
   console.log(JSON.stringify(discounts)) 
