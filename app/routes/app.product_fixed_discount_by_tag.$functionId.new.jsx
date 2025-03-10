@@ -63,7 +63,7 @@ export const action = async ({ request }) => {
   const discountCode = formData.get("discountCode");
   const startsAt = formData.get("startsAt") ?? "2024-12-12T17:09:21Z";
   const endsAt = formData.get("endsAt");
-
+  const message = formData.get("message");
   const combineWithOrderDiscounts = JSON.parse(formData.get("combineWithOrderDiscounts"));
   const combineWithProductDiscounts = JSON.parse(formData.get("combineWithProductDiscounts"));
   const combineWithShippingDiscounts = JSON.parse(formData.get("combineWithShippingDiscounts"));
@@ -96,12 +96,19 @@ export const action = async ({ request }) => {
           value: JSON.stringify({ JsonTags: onlytags }),
         },
         {
+          key: "message",
+          namespace: "$app:product-discount",
+          type: "string",
+          value: message,
+        },
+        {
           key: "configuration",
           namespace: "$app:product-discount",
           type: "json",
           value: JSON.stringify({
             discountType: discountType,
-            tags: tags
+            tags: tags,
+            message:message
           }),
         },
       ],
@@ -181,7 +188,12 @@ export const action = async ({ request }) => {
           type: "json",
           value: JSON.stringify({ JsonTags: onlytags }),
         },
-
+        {
+          key: "message",
+          namespace: "$app:product-discount",
+          type: "string",
+          value: message,
+        },
 
         {
           key: "configuration",
@@ -189,7 +201,8 @@ export const action = async ({ request }) => {
           type: "json",
           value: JSON.stringify({
             discountType: discountType,
-            tags: tags
+            tags: tags,
+            message:message
           }),
         },
       ],
@@ -226,12 +239,14 @@ export const action = async ({ request }) => {
   }
 
 };
-function validateData(tags) {
+function validateData(tags,message) {
 
   if (tags.length==0) {
     return { valid: false, Errormessage: `tags are required` };
   }
-
+  if (message == "") {
+    return { valid: false, Errormessage: `message is required` };
+  }
   return { valid: true, Errormessage: `` };
 
 }
@@ -258,6 +273,7 @@ export default function Index() {
 
   const [title, setTitle] = useState("");
   const [tags, setTags] = useState([]);
+  const [message, setMessage] = useState("");
   const [combineWithOrderDiscounts, setCombineWithOrderDiscounts] = useState(false);
   const [combineWithProductDiscounts, setCombineWithProductDiscounts] = useState(false);
   const [combineWithShippingDiscounts, setCombineWithShippingDiscounts] = useState(false);
@@ -299,7 +315,7 @@ export default function Index() {
             if (resp.resp?.data.discountAutomaticAppCreate?.userErrors.length < 1 || !resp.resp?.data.discountAutomaticAppCreate) {
 
               shopify.toast.show("Discount Created!");
-              // redirect.dispatch(Redirect.Action.REMOTE, discountsURL);
+              redirect.dispatch(Redirect.Action.REMOTE, discountsURL);
             }
           }
         }
@@ -346,6 +362,7 @@ export default function Index() {
   formData.append("title", title);
   formData.append("discountType", discountType);
   formData.append("discountCode", discountCode);
+  formData.append("message", message);
   formData.append("tags", JSON.stringify(tags));
   formData.append("combineWithOrderDiscounts", combineWithOrderDiscounts);
   formData.append("combineWithProductDiscounts", combineWithProductDiscounts);
@@ -362,7 +379,7 @@ export default function Index() {
 
   const CreateDiscount = () => {
 
-    const { valid, Errormessage } = validateData(tags);
+    const { valid, Errormessage } = validateData(tags,message);
     if (valid == false) {
       shopify.toast.show(`${Errormessage}`, {
         autoClose: 2000,
@@ -438,7 +455,20 @@ export default function Index() {
                   </Card>
 
                 </div>
-
+                <Card roundedAbove="sm">
+                <div style={{ marginTop: "20px" }}>
+                     <Grid>
+                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                          <TextField
+                            label="Discount Message"
+                            type="text"
+                            value={message}
+                            onChange={(value) => setMessage(value)}
+                          />
+                        </Grid.Cell>
+                      </Grid>
+                </div>
+                </Card>
                 <div style={{ marginTop: "20px" }}>
 
 

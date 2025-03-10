@@ -24,12 +24,14 @@ import { createApp } from '@shopify/app-bridge';
 import { Redirect } from '@shopify/app-bridge/actions';
 
 
-function validateData(tags) {
+function validateData(tags,message) {
 
   if (tags.length==0) {
     return { valid: false, Errormessage: `tags are required` };
   }
-
+  if (message == "") {
+    return { valid: false, Errormessage: `message is required` };
+  }
   return { valid: true, Errormessage: `` };
 
 }
@@ -161,6 +163,8 @@ export const loader = async ({ request, params }) => {
   }
   let discountNode = discountType == "automatic" ? currentDiscount.data.automaticDiscountNode : currentDiscount.data.codeDiscountNode;
   let tags = discountNode.metafields.nodes.find((node) => node.key === "tags")?.value || null;
+  
+  let message = discountNode.metafields.nodes.find((node) => node.key === "message")?.value || null;
   let selectedStartsAt = discountType == "automatic" ? discountNode.automaticDiscount.startsAt : discountNode.codeDiscount.startsAt;
   let selectedEndsAt = discountType == "automatic" ? discountNode.automaticDiscount.endsAt : discountNode.codeDiscount.endsAt;
   selectedStartsAt = convertToEST(selectedStartsAt);
@@ -183,7 +187,8 @@ export const loader = async ({ request, params }) => {
     SelectedDiscountCode: discountCode,
     SelectedTags: tags,
     selectedStartsAt,
-    selectedEndsAt
+    selectedEndsAt,
+    SelectedMessage: message,
 
   });
 };
@@ -201,6 +206,7 @@ export const action = async ({ request }) => {
   const discountType = formData.get("discountType");
   const startsAt = formData.get("startsAt") ?? "2024-12-12T17:09:21Z";
   const endsAt = formData.get("endsAt");
+  const message = formData.get("message");
   const combineWithOrderDiscounts = JSON.parse(formData.get("combineWithOrderDiscounts"));
   const combineWithProductDiscounts = JSON.parse(formData.get("combineWithProductDiscounts"));
   const combineWithShippingDiscounts = JSON.parse(formData.get("combineWithShippingDiscounts"));
@@ -269,6 +275,13 @@ export const action = async ({ request }) => {
               type: "json",
               value: JSON.stringify({JsonTags:onlytags}),
             },
+            {
+              ownerId: DiscountCodeNode,
+              key: "message",
+              namespace: "$app:product-discount",
+              type: "string",
+              value: message,
+            },
           
             {
               ownerId: DiscountCodeNode,
@@ -277,7 +290,8 @@ export const action = async ({ request }) => {
               type: "json",
               value: JSON.stringify({
                 discountType: discountType,
-                tags: tags
+                tags: tags,
+                message:message
               }),
             },
           ],
@@ -354,7 +368,13 @@ export const action = async ({ request }) => {
               type: "json",
               value: JSON.stringify({JsonTags:onlytags}),
             },
-          
+            {
+              ownerId: DiscountCodeNode,
+              key: "message",
+              namespace: "$app:product-discount",
+              type: "string",
+              value: message,
+            },
             {
               ownerId: DiscountCodeNode,
               key: "configuration",
@@ -362,7 +382,8 @@ export const action = async ({ request }) => {
               type: "json",
               value: JSON.stringify({
                 discountType: discountType,
-                tags: tags
+                tags: tags,
+                message:message
               }),
             },
           ],
@@ -395,7 +416,8 @@ export default function Index() {
     SelectedDiscountCode,
     selectedStartsAt,
     selectedEndsAt,
-    SelectedTags
+    SelectedTags,
+    SelectedMessage
 
   } = useLoaderData();
 
@@ -465,6 +487,7 @@ export default function Index() {
   const [combineWithProductDiscounts, setCombineWithProductDiscounts] = useState(withproductDiscounts);
   const [combineWithShippingDiscounts, setCombineWithShippingDiscounts] = useState(withshippingDiscounts);
   const [discountCode, setDiscountCode] = useState(SelectedDiscountCode);
+  const [message, setMessage] = useState(SelectedMessage);
   const [endDate, setEndDate] = useState(selectedEndsAt ? selectedEndsAt?.split("T")[0] : new Date().toISOString().split("T")[0]);
   const [endTime, setEndTime] = useState(selectedEndsAt ? selectedEndsAt?.split("T")[1].slice(0, 5) : "23:00");
   const [showEndDate, setShowEndDate] = useState(selectedEndsAt ? true : false);
@@ -494,6 +517,7 @@ export default function Index() {
   formData.append("discountType", discountType);
   formData.append("discountCode", discountCode);
   formData.append("tags", JSON.stringify(tags));
+  formData.append("message", message);
   formData.append("combineWithOrderDiscounts", combineWithOrderDiscounts);
   formData.append("combineWithProductDiscounts", combineWithProductDiscounts);
   formData.append("combineWithShippingDiscounts", combineWithShippingDiscounts);
@@ -510,7 +534,7 @@ export default function Index() {
 
   const CreateDiscount = () => {
 
-    const { valid, Errormessage } = validateData(tags);
+    const { valid, Errormessage } = validateData(tags,message);
     if (valid == false) {
       shopify.toast.show(`${Errormessage}`, {
         autoClose: 2000,
@@ -587,7 +611,20 @@ export default function Index() {
                   </Card>
 
                 </div>
-
+                <div style={{ marginTop: "20px" }}>
+                  <Card> 
+                      <Grid>
+                        <Grid.Cell columnSpan={{ xs: 6, sm: 3, md: 3, lg: 6, xl: 6 }}>
+                          <TextField
+                            label="Discount Message"
+                            type="text"
+                            value={message}
+                            onChange={(value) => setMessage(value)}
+                          />
+                        </Grid.Cell>
+                      </Grid>
+                    </Card>
+                </div>
                 <div style={{ marginTop: "20px" }}>
 
 
@@ -621,7 +658,8 @@ export default function Index() {
                     </Box>
                   </Card>
                 </div>
-
+                
+             
                 <div style={{ marginTop: "20px" }}>
                   <Card>
                     <Grid>
