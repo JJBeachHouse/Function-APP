@@ -3,6 +3,9 @@ api_version = "2025-01"
 [[extensions]]
 name = "t:name"
 handle = "product-discount-by-tag"
+
+uid = "2f29cf38-d321-a482-fa04-298e6c53881228b8eb6c"
+
 type = "function"
 
 description = "t:description"
