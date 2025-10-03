@@ -3,6 +3,9 @@ api_version = "2025-01"
 [[extensions]]
 name = "t:name"
 handle = "product-discount-gwp"
+
+uid = "a14489e7-89ba-2414-b217-7baf9b943bbf3f2af25b"
+
 type = "function"
 
 description = "t:description"
