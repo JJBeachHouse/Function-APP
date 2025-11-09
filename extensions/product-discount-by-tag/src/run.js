@@ -24,20 +24,35 @@ export function run(input) {
     console.error("Metafield value is missing or invalid.");
     return EMPTY_DISCOUNT;
   }
-  const { amountType, amount, message } = JSON.parse(metafieldValue);
+  const { tag, amountType, amount, message } = JSON.parse(metafieldValue);
 
   const eligibleLines = [];
   for (const line of input.cart.lines) {
     if (line.merchandise?.product?.hasAnyTag) {
-      eligibleLines.push({
-        productVariant: {
-          id: line.merchandise.id,
-        },
-      });
+
+      let tagText = "" + tag + "";
+      if( tagText.includes(':')){
+        const variantIdInTag = tagText.split(':');
+        let variantIdText =""+ line.merchandise.id + "";
+        if(variantIdText.includes(variantIdInTag[1])){
+          eligibleLines.push({
+            productVariant: {
+              id: line.merchandise.id,
+            },
+          });
+        }
+      }else{
+        eligibleLines.push({
+          productVariant: {
+            id: line.merchandise.id,
+          },
+        });
+      }
+
+
     }
   }
 
-  // Create discount value
   const discountValue =
     amountType === "percent"
       ? {
