@@ -1,0 +1,22 @@
+query CartTransformRunInput {
+  cart {
+    lines {
+      id
+      quantity
+      cost {
+        amountPerQuantity {
+          amount
+        }
+      }
+      bundleId: attribute(key: "_bundle_id") {
+        value
+      }
+      bundleTotal: attribute(key: "_bundle_total") {
+        value
+      }
+      bundleSize: attribute(key: "_bundle_size") {
+        value
+      }
+    }
+  }
+}
