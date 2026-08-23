@@ -1,0 +1,31 @@
+{
+  "payload": {
+    "export": "cart-transform-run",
+    "target": "cart.transform.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 1,
+            "cost": { "amountPerQuantity": { "amount": "28.00" } },
+            "bundleId": { "value": "b1" },
+            "bundleTotal": { "value": "6000" },
+            "bundleSize": { "value": "3" }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "quantity": 1,
+            "cost": { "amountPerQuantity": { "amount": "28.00" } },
+            "bundleId": { "value": "b1" },
+            "bundleTotal": { "value": "6000" },
+            "bundleSize": { "value": "3" }
+          }
+        ]
+      }
+    },
+    "output": {
+      "operations": []
+    }
+  }
+}
