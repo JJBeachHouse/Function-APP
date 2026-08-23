@@ -12,6 +12,9 @@ const NO_CHANGES = {
   operations: [],
 };
 
+// TEMPORARY: set false (and redeploy) to drop the diagnostic titles.
+const DEBUG_TITLE = true;
+
 /**
  * Fixed-price bundles for the theme's bundle builder.
  *
@@ -109,6 +112,12 @@ function priceGroup(group) {
   return lines.map((line, i) => ({
     update: {
       cartLineId: line.id,
+      // TEMPORARY DIAGNOSTIC -- remove once the price question is settled.
+      // The title proves whether this function runs at all. If titles change at
+      // checkout but prices do not, the function executes and Shopify is
+      // discarding the price adjustment specifically. If neither changes, the
+      // function is never invoked despite a valid registration.
+      title: DEBUG_TITLE ? 'BUNDLE ' + (shares[i] / 100).toFixed(2) : undefined,
       price: {
         adjustment: {
           fixedPricePerUnit: {
