@@ -47,7 +47,7 @@ export function cartTransformRun(input) {
     try {
       const first = input && input.cart && input.cart.lines && input.cart.lines[0];
       if (first) {
-        probe = [{ update: { cartLineId: first.id, title: 'PROBE OK' } }];
+        probe = [{ lineUpdate: { cartLineId: first.id, title: 'PROBE OK' } }];
       }
     } catch (e) {
       probe = [];
@@ -58,7 +58,7 @@ export function cartTransformRun(input) {
     return withProbe(probe, priceCart(input));
   } catch (e) {
     if (probe.length) {
-      probe[0].update.title = 'PROBE ERROR ' + String((e && e.message) || e).slice(0, 60);
+      probe[0].lineUpdate.title = 'PROBE ERROR ' + String((e && e.message) || e).slice(0, 60);
       return { operations: probe };
     }
     return NO_CHANGES;
@@ -73,10 +73,10 @@ export function cartTransformRun(input) {
 function withProbe(probe, result) {
   if (!probe.length) return result;
   const ops = result.operations || [];
-  const probeLineId = probe[0].update.cartLineId;
-  const existing = ops.find((o) => o.update && o.update.cartLineId === probeLineId);
+  const probeLineId = probe[0].lineUpdate.cartLineId;
+  const existing = ops.find((o) => o.lineUpdate && o.lineUpdate.cartLineId === probeLineId);
   if (existing) {
-    existing.update.title = 'PROBE OK ' + (existing.update.title || '');
+    existing.lineUpdate.title = 'PROBE OK ' + (existing.lineUpdate.title || '');
     return { operations: ops };
   }
   return { operations: probe.concat(ops) };
@@ -158,7 +158,7 @@ function priceGroup(group) {
   }
 
   return lines.map((line, i) => ({
-    update: {
+    lineUpdate: {
       cartLineId: line.id,
       // TEMPORARY DIAGNOSTIC -- remove once the price question is settled.
       // The title proves whether this function runs at all. If titles change at
