@@ -15,43 +15,55 @@ import {
 import { TitleBar } from "@shopify/app-bridge-react";
 import { authenticate } from "../shopify.server";
 
-// The cart transform function that gives the theme's bundle builder a fixed
-// bundle price. Registering it has to happen from THIS app: a CartTransform is
-// resolved against the calling app's own functions, so creating one from an
-// outside client (the GraphiQL app, say) produces a record that never executes.
-const FUNCTION_ID = "019fe8f4-1220-7c93-9410-8e228ec94376";
+// The cart transform extension's handle, from its shopify.extension.toml.
+// Registering by handle rather than id matters: a CartTransform is resolved
+// against the CALLING app's own functions, so a handle both identifies the
+// function and proves ownership. Creating one from an outside client with the
+// deprecated functionId parameter is accepted and then never executes.
+const FUNCTION_HANDLE = "bundle-set-price";
+
+const FUNCTIONS_QUERY = `#graphql
+  query ShopifyFunctions {
+    shopifyFunctions(first: 50) {
+      nodes {
+        id
+        title
+        apiType
+        app { title }
+      }
+    }
+  }`;
+
+const TRANSFORMS_QUERY = `#graphql
+  query CartTransforms {
+    cartTransforms(first: 10) {
+      nodes { id functionId blockOnFailure }
+    }
+  }`;
+
+async function runQuery(admin, query) {
+  try {
+    const response = await admin.graphql(query);
+    const body = await response.json();
+    const errors = (body?.errors || []).map((e) => e.message).join(" | ");
+    return { data: body?.data, error: errors || null };
+  } catch (e) {
+    return { data: null, error: String((e && e.message) || e) };
+  }
+}
 
 export async function loader({ request }) {
   const { admin } = await authenticate.admin(request);
 
-  // Listing cart transforms needs the write_cart_transforms scope. If the app
-  // has not been reauthorized since that scope was added, this throws -- so
-  // surface the message on the page rather than 500ing to a blank screen.
-  try {
-    const response = await admin.graphql(
-      `#graphql
-      query CartTransforms {
-        cartTransforms(first: 10) {
-          nodes { id functionId blockOnFailure }
-        }
-      }`
-    );
-    const body = await response.json();
+  const fns = await runQuery(admin, FUNCTIONS_QUERY);
+  const transforms = await runQuery(admin, TRANSFORMS_QUERY);
 
-    const gqlErrors = (body?.errors || []).map((e) => e.message).join(' | ');
-
-    return json({
-      functionId: FUNCTION_ID,
-      transforms: body?.data?.cartTransforms?.nodes ?? [],
-      loadError: gqlErrors || null,
-    });
-  } catch (e) {
-    return json({
-      functionId: FUNCTION_ID,
-      transforms: [],
-      loadError: String((e && e.message) || e),
-    });
-  }
+  return json({
+    handle: FUNCTION_HANDLE,
+    functions: fns.data?.shopifyFunctions?.nodes ?? [],
+    transforms: transforms.data?.cartTransforms?.nodes ?? [],
+    loadError: fns.error || transforms.error || null,
+  });
 }
 
 export async function action({ request }) {
@@ -74,22 +86,27 @@ export async function action({ request }) {
     return json({ result: body?.data?.cartTransformDelete });
   }
 
+  // functionId is deprecated; functionHandle resolves against this app's own
+  // functions, which is exactly the ownership guarantee a cart transform needs.
   const response = await admin.graphql(
     `#graphql
-    mutation CartTransformCreate($functionId: String!) {
-      cartTransformCreate(functionId: $functionId, blockOnFailure: false) {
+    mutation CartTransformCreate($handle: String!) {
+      cartTransformCreate(functionHandle: $handle, blockOnFailure: false) {
         cartTransform { id functionId }
         userErrors { field message }
       }
     }`,
-    { variables: { functionId: FUNCTION_ID } }
+    { variables: { handle: FUNCTION_HANDLE } }
   );
   const body = await response.json();
-  return json({ result: body?.data?.cartTransformCreate });
+  return json({
+    result: body?.data?.cartTransformCreate,
+    topLevelErrors: (body?.errors || []).map((e) => e.message),
+  });
 }
 
 export default function BundleTransformPage() {
-  const { functionId, transforms, loadError } = useLoaderData();
+  const { handle, functions, transforms, loadError } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -104,7 +121,10 @@ export default function BundleTransformPage() {
     submit(data, { method: "post" });
   };
 
-  const errors = actionData?.result?.userErrors ?? [];
+  const errors = [
+    ...(actionData?.result?.userErrors ?? []).map((e) => e.message),
+    ...(actionData?.topLevelErrors ?? []),
+  ];
 
   return (
     <Page>
@@ -117,22 +137,15 @@ export default function BundleTransformPage() {
                 Cart transform registration
               </Text>
               <Text as="p" variant="bodyMd">
-                Registers the <code>bundle-set-price</code> function so bundles built
-                on the storefront are charged their fixed bundle price. This must be
-                run from inside this app — a cart transform created by any other
-                client is accepted but never runs.
-              </Text>
-              <Text as="p" variant="bodySm" tone="subdued">
-                Function id: {functionId}
+                Registers the <code>{handle}</code> function so bundles built on the
+                storefront are charged their fixed bundle price. This must be run
+                from inside this app — a cart transform created by any other client
+                is accepted but never runs.
               </Text>
 
               {loadError && (
-                <Banner tone="warning" title="Could not read cart transforms">
+                <Banner tone="warning" title="Could not read functions or transforms">
                   <Text as="p" variant="bodyMd">{loadError}</Text>
-                  <Text as="p" variant="bodySm">
-                    Usually means the app has not been reauthorized since
-                    write_cart_transforms was added to its scopes.
-                  </Text>
                 </Banner>
               )}
 
@@ -144,8 +157,8 @@ export default function BundleTransformPage() {
               {errors.length > 0 && (
                 <Banner tone="critical">
                   <List>
-                    {errors.map((e, i) => (
-                      <List.Item key={i}>{e.message}</List.Item>
+                    {errors.map((m, i) => (
+                      <List.Item key={i}>{m}</List.Item>
                     ))}
                   </List>
                 </Banner>
@@ -164,12 +177,33 @@ export default function BundleTransformPage() {
           <Card>
             <BlockStack gap="300">
               <Text as="h2" variant="headingMd">
+                Functions visible to this app
+              </Text>
+              {functions.length === 0 && (
+                <Text as="p" variant="bodyMd" tone="subdued">None returned.</Text>
+              )}
+              {functions.map((f) => (
+                <BlockStack key={f.id} gap="050">
+                  <Text as="p" variant="bodyMd">
+                    {f.title} — {f.apiType}
+                  </Text>
+                  <Text as="p" variant="bodySm" tone="subdued">
+                    {f.id} · app: {f.app?.title || "unknown"}
+                  </Text>
+                </BlockStack>
+              ))}
+            </BlockStack>
+          </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+          <Card>
+            <BlockStack gap="300">
+              <Text as="h2" variant="headingMd">
                 Registered cart transforms
               </Text>
               {transforms.length === 0 && (
-                <Text as="p" variant="bodyMd" tone="subdued">
-                  None registered for this app.
-                </Text>
+                <Text as="p" variant="bodyMd" tone="subdued">None registered.</Text>
               )}
               {transforms.map((t) => (
                 <InlineStack key={t.id} gap="300" align="space-between" blockAlign="center">
