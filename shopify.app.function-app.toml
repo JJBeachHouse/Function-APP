@@ -22,3 +22,9 @@ redirect_urls = [
 
 [pos]
 embedded = false
+
+[build]
+automatically_update_urls_on_dev = true
+# Ship access_scopes with `shopify app deploy`. Without this, scope changes in
+# this file never reach the app and the install keeps its old permissions.
+include_config_on_deploy = true
