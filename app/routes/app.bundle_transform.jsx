@@ -24,20 +24,34 @@ const FUNCTION_ID = "019fe8f4-1220-7c93-9410-8e228ec94376";
 export async function loader({ request }) {
   const { admin } = await authenticate.admin(request);
 
-  const response = await admin.graphql(
-    `#graphql
-    query CartTransforms {
-      cartTransforms(first: 10) {
-        nodes { id functionId blockOnFailure }
-      }
-    }`
-  );
-  const body = await response.json();
+  // Listing cart transforms needs the write_cart_transforms scope. If the app
+  // has not been reauthorized since that scope was added, this throws -- so
+  // surface the message on the page rather than 500ing to a blank screen.
+  try {
+    const response = await admin.graphql(
+      `#graphql
+      query CartTransforms {
+        cartTransforms(first: 10) {
+          nodes { id functionId blockOnFailure }
+        }
+      }`
+    );
+    const body = await response.json();
 
-  return json({
-    functionId: FUNCTION_ID,
-    transforms: body?.data?.cartTransforms?.nodes ?? [],
-  });
+    const gqlErrors = (body?.errors || []).map((e) => e.message).join(' | ');
+
+    return json({
+      functionId: FUNCTION_ID,
+      transforms: body?.data?.cartTransforms?.nodes ?? [],
+      loadError: gqlErrors || null,
+    });
+  } catch (e) {
+    return json({
+      functionId: FUNCTION_ID,
+      transforms: [],
+      loadError: String((e && e.message) || e),
+    });
+  }
 }
 
 export async function action({ request }) {
@@ -75,7 +89,7 @@ export async function action({ request }) {
 }
 
 export default function BundleTransformPage() {
-  const { functionId, transforms } = useLoaderData();
+  const { functionId, transforms, loadError } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
   const navigation = useNavigation();
@@ -111,6 +125,16 @@ export default function BundleTransformPage() {
               <Text as="p" variant="bodySm" tone="subdued">
                 Function id: {functionId}
               </Text>
+
+              {loadError && (
+                <Banner tone="warning" title="Could not read cart transforms">
+                  <Text as="p" variant="bodyMd">{loadError}</Text>
+                  <Text as="p" variant="bodySm">
+                    Usually means the app has not been reauthorized since
+                    write_cart_transforms was added to its scopes.
+                  </Text>
+                </Banner>
+              )}
 
               {actionData?.result && errors.length === 0 && (
                 <Banner tone="success">
