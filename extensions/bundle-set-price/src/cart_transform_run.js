@@ -35,6 +35,54 @@ const DEBUG_TITLE = true;
  * @returns {CartTransformRunResult}
  */
 export function cartTransformRun(input) {
+  // TEMPORARY PROBE. blockOnFailure is false, so a function that throws looks
+  // identical to one that is never invoked -- both leave the cart untouched with
+  // no visible error. This marks the first line before any of our logic runs, so
+  // the three states become distinguishable at checkout:
+  //   title "PROBE OK"    -> the function executes
+  //   title "PROBE ERROR" -> it executes and our logic throws
+  //   title unchanged     -> it is genuinely never invoked
+  let probe = [];
+  if (DEBUG_TITLE) {
+    try {
+      const first = input && input.cart && input.cart.lines && input.cart.lines[0];
+      if (first) {
+        probe = [{ update: { cartLineId: first.id, title: 'PROBE OK' } }];
+      }
+    } catch (e) {
+      probe = [];
+    }
+  }
+
+  try {
+    return withProbe(probe, priceCart(input));
+  } catch (e) {
+    if (probe.length) {
+      probe[0].update.title = 'PROBE ERROR ' + String((e && e.message) || e).slice(0, 60);
+      return { operations: probe };
+    }
+    return NO_CHANGES;
+  }
+}
+
+/**
+ * Merges the probe with the real operations. The probe targets the first line,
+ * so if the real result already updates that line, fold the title into it rather
+ * than emitting two operations for the same cart line.
+ */
+function withProbe(probe, result) {
+  if (!probe.length) return result;
+  const ops = result.operations || [];
+  const probeLineId = probe[0].update.cartLineId;
+  const existing = ops.find((o) => o.update && o.update.cartLineId === probeLineId);
+  if (existing) {
+    existing.update.title = 'PROBE OK ' + (existing.update.title || '');
+    return { operations: ops };
+  }
+  return { operations: probe.concat(ops) };
+}
+
+function priceCart(input) {
   const groups = new Map();
 
   for (const line of input.cart.lines) {
