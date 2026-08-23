@@ -12,9 +12,6 @@ const NO_CHANGES = {
   operations: [],
 };
 
-// TEMPORARY: set false (and redeploy) to drop the diagnostic titles.
-const DEBUG_TITLE = true;
-
 /**
  * Fixed-price bundles for the theme's bundle builder.
  *
@@ -27,7 +24,7 @@ const DEBUG_TITLE = true;
  *   _bundle_size   how many lines the bundle should have (optional)
  *
  * This function groups the lines by _bundle_id and rewrites each line's price so
- * the group sums exactly to _bundle_total. Because it uses the update operation
+ * the group sums exactly to _bundle_total. Because it uses the lineUpdate operation
  * rather than a discount, the customer sees the bundle prices directly and no
  * discount line appears at checkout.
  *
@@ -35,54 +32,6 @@ const DEBUG_TITLE = true;
  * @returns {CartTransformRunResult}
  */
 export function cartTransformRun(input) {
-  // TEMPORARY PROBE. blockOnFailure is false, so a function that throws looks
-  // identical to one that is never invoked -- both leave the cart untouched with
-  // no visible error. This marks the first line before any of our logic runs, so
-  // the three states become distinguishable at checkout:
-  //   title "PROBE OK"    -> the function executes
-  //   title "PROBE ERROR" -> it executes and our logic throws
-  //   title unchanged     -> it is genuinely never invoked
-  let probe = [];
-  if (DEBUG_TITLE) {
-    try {
-      const first = input && input.cart && input.cart.lines && input.cart.lines[0];
-      if (first) {
-        probe = [{ lineUpdate: { cartLineId: first.id, title: 'PROBE OK' } }];
-      }
-    } catch (e) {
-      probe = [];
-    }
-  }
-
-  try {
-    return withProbe(probe, priceCart(input));
-  } catch (e) {
-    if (probe.length) {
-      probe[0].lineUpdate.title = 'PROBE ERROR ' + String((e && e.message) || e).slice(0, 60);
-      return { operations: probe };
-    }
-    return NO_CHANGES;
-  }
-}
-
-/**
- * Merges the probe with the real operations. The probe targets the first line,
- * so if the real result already updates that line, fold the title into it rather
- * than emitting two operations for the same cart line.
- */
-function withProbe(probe, result) {
-  if (!probe.length) return result;
-  const ops = result.operations || [];
-  const probeLineId = probe[0].lineUpdate.cartLineId;
-  const existing = ops.find((o) => o.lineUpdate && o.lineUpdate.cartLineId === probeLineId);
-  if (existing) {
-    existing.lineUpdate.title = 'PROBE OK ' + (existing.lineUpdate.title || '');
-    return { operations: ops };
-  }
-  return { operations: probe.concat(ops) };
-}
-
-function priceCart(input) {
   const groups = new Map();
 
   for (const line of input.cart.lines) {
@@ -160,12 +109,6 @@ function priceGroup(group) {
   return lines.map((line, i) => ({
     lineUpdate: {
       cartLineId: line.id,
-      // TEMPORARY DIAGNOSTIC -- remove once the price question is settled.
-      // The title proves whether this function runs at all. If titles change at
-      // checkout but prices do not, the function executes and Shopify is
-      // discarding the price adjustment specifically. If neither changes, the
-      // function is never invoked despite a valid registration.
-      title: DEBUG_TITLE ? 'BUNDLE ' + (shares[i] / 100).toFixed(2) : undefined,
       price: {
         adjustment: {
           fixedPricePerUnit: {
