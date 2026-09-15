@@ -1,0 +1,43 @@
+{
+  "payload": {
+    "export": "cart-transform-run",
+    "target": "cart.transform.run",
+    "input": {
+      "cart": {
+        "lines": [
+          {
+            "id": "gid://shopify/CartLine/1",
+            "quantity": 1,
+            "cost": { "amountPerQuantity": { "amount": "14.00" } },
+            "bundleId": { "value": "b3" },
+            "bundleTotal": { "value": "2000" },
+            "bundleSize": { "value": "3" }
+          },
+          {
+            "id": "gid://shopify/CartLine/2",
+            "quantity": 1,
+            "cost": { "amountPerQuantity": { "amount": "12.00" } },
+            "bundleId": { "value": "b3" },
+            "bundleTotal": { "value": "2000" },
+            "bundleSize": { "value": "3" }
+          },
+          {
+            "id": "gid://shopify/CartLine/3",
+            "quantity": 1,
+            "cost": { "amountPerQuantity": { "amount": "9.00" } },
+            "bundleId": { "value": "b3" },
+            "bundleTotal": { "value": "2000" },
+            "bundleSize": { "value": "3" }
+          }
+        ]
+      }
+    },
+    "output": {
+      "operations": [
+        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/1", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "6.67" } } } } },
+        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/2", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "6.67" } } } } },
+        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/3", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "6.66" } } } } }
+      ]
+    }
+  }
+}

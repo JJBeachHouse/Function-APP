@@ -76,35 +76,14 @@ function priceGroup(group) {
   // exactly, so leave the whole bundle alone.
   if (lines.some((line) => line.quantity !== 1)) return [];
 
-  const lineCents = lines.map((line) =>
-    Math.round(parseFloat(line.cost.amountPerQuantity.amount) * 100)
-  );
-  if (lineCents.some((cents) => !Number.isFinite(cents) || cents < 0)) return [];
-
-  const originalCents = lineCents.reduce((sum, cents) => sum + cents, 0);
-  if (originalCents <= 0) return [];
-
-  // Split the bundle total across the lines in proportion to what each item
-  // normally costs, so a $40 item and a $20 item don't both land on $30. All
-  // maths is in integer cents; the last line absorbs the rounding remainder so
-  // the group sums to exactly _bundle_total rather than a cent either side.
-  const shares = [];
-  let allocated = 0;
-  for (let i = 0; i < lineCents.length - 1; i++) {
-    const share = Math.round((totalCents * lineCents[i]) / originalCents);
-    shares.push(share);
-    allocated += share;
-  }
-  shares.push(totalCents - allocated);
-
-  // Proportional rounding can only go negative on pathological inputs (a zero
-  // priced item alongside a tiny bundle total). Split evenly instead.
-  if (shares.some((share) => share < 0)) {
-    const even = Math.floor(totalCents / lines.length);
-    shares.length = 0;
-    for (let i = 0; i < lines.length - 1; i++) shares.push(even);
-    shares.push(totalCents - even * (lines.length - 1));
-  }
+  // Split the bundle total evenly, so every item shows the same price whatever it
+  // normally costs: a $20 bundle of a $14 and a $12 item charges $10 each. All
+  // maths is in integer cents. When the total doesn't divide exactly, the leftover
+  // cents go one apiece to the first lines, so items differ by at most a cent and
+  // the group still sums to exactly _bundle_total.
+  const base = Math.floor(totalCents / lines.length);
+  const remainder = totalCents - base * lines.length;
+  const shares = lines.map((_, i) => base + (i < remainder ? 1 : 0));
 
   return lines.map((line, i) => ({
     lineUpdate: {

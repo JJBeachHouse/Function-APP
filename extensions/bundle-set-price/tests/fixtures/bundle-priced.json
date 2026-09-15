@@ -34,9 +34,9 @@
     },
     "output": {
       "operations": [
-        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/1", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "24.00" } } } } },
-        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/2", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "24.00" } } } } },
-        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/3", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "12.00" } } } } }
+        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/1", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "20.00" } } } } },
+        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/2", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "20.00" } } } } },
+        { "lineUpdate": { "cartLineId": "gid://shopify/CartLine/3", "price": { "adjustment": { "fixedPricePerUnit": { "amount": "20.00" } } } } }
       ]
     }
   }
